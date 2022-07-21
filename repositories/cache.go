@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"GoConcurrency-Bootcamp-2022/models"
 
@@ -34,6 +35,12 @@ func (c Cache) Save(ctx context.Context, pokemons []models.Pokemon) error {
 	return c.redis.HSet(ctx, cacheKey, hashMap).Err()
 }
 
+type PokemonsByID []models.Pokemon
+
+func (x PokemonsByID) Len() int           { return len(x) }
+func (x PokemonsByID) Less(i, j int) bool { return x[i].ID < x[j].ID }
+func (x PokemonsByID) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+
 func (c Cache) GetPokemons(ctx context.Context) ([]models.Pokemon, error) {
 	rawData, err := c.redis.HGetAll(ctx, cacheKey).Result()
 	if err != nil {
@@ -49,6 +56,8 @@ func (c Cache) GetPokemons(ctx context.Context) ([]models.Pokemon, error) {
 
 		result = append(result, p)
 	}
+
+	sort.Sort(PokemonsByID(result))
 
 	return result, nil
 }

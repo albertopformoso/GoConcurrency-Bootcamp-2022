@@ -17,7 +17,7 @@ const filePath = "resources/pokemons.csv"
 
 func (l LocalStorage) Write(pokemons []models.Pokemon) error {
 	file, fErr := os.Create(filePath)
-	defer func(){
+	defer func() {
 		if err := file.Close(); err != nil {
 			log.Printf("ERROR: file not closed")
 		}
@@ -37,7 +37,7 @@ func (l LocalStorage) Write(pokemons []models.Pokemon) error {
 
 func (l LocalStorage) Read() ([]models.Pokemon, error) {
 	file, fErr := os.Open(filePath)
-	defer func(){
+	defer func() {
 		if err := file.Close(); err != nil {
 			log.Printf("ERROR: file not closed")
 		}
