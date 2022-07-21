@@ -1,10 +1,17 @@
 package app
 
-import "GoConcurrency-Bootcamp-2022/router"
+import (
+	"GoConcurrency-Bootcamp-2022/router"
+	"os"
+)
 
 func Start() {
 	r := router.Init()
-	if err := r.Run(":8080"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := r.Run(":"+port); err != nil {
 		panic(err)
 	}
 }
