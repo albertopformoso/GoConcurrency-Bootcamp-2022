@@ -58,7 +58,7 @@ func GetResponses(from, to int, f Fetcher) <-chan models.Pokemon {
 func PingAPI(id int, f Fetcher, ch chan models.Pokemon) {
 	pokemon, err := f.api.FetchPokemon(id)
 	if err != nil {
-		log.Fatalf("ERROR: fetch pokemon failed")
+		log.Printf("ERROR: fetch pokemon failed")
 	}
 
 	var flatAbilities []string
