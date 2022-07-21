@@ -1,4 +1,4 @@
 [build]
     command = "make build"
-    functions = "functions"
+    functions = "bin"
     publish = "./"
