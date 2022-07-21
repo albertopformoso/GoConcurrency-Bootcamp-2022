@@ -37,12 +37,13 @@ func (r Refresher) Refresh(ctx context.Context) error {
 	dataChan := readData(r)
 
 	// Workers
-	pokemonWorker1 := getAbilities(dataChan, r)
-	pokemonWorker2 := getAbilities(dataChan, r)
-	pokemonWorker3 := getAbilities(dataChan, r)
+	var workers = make(map[int]<-chan models.Pokemon)
+	amountOfWorkers := 3
+	for i := 0; i < amountOfWorkers; i++ {
+		workers[i] = getAbilities(dataChan, r)
+	}
 
-	for pokemon := range fanIn(pokemonWorker1, pokemonWorker2, pokemonWorker3) {
-		// log.Printf("%v.- %v\n", pokemon.ID, pokemon.Name)
+	for pokemon := range fanIn(workers) {
 		pokemons = append(pokemons, pokemon)
 	}
 
@@ -99,7 +100,7 @@ func readData(r Refresher) chan models.Pokemon {
 	return out
 }
 
-func fanIn(chans ...<-chan models.Pokemon) <-chan models.Pokemon {
+func fanIn(chans map[int]<-chan models.Pokemon) <-chan models.Pokemon {
 	out := make(chan models.Pokemon)
 	wg := &sync.WaitGroup{}
 
