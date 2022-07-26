@@ -33,11 +33,13 @@ func (x PokemonsByID) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
 
 func (f Fetcher) Fetch(from, to int) error {
 	var pokemons []models.Pokemon
+	ch := make(chan models.Pokemon)
+	defer close(ch)
 
-	ch := GetResponses(from, to, f)
+	channel := GetResponses(from, to, f, ch)
 
 	for id := from; id <= to; id++ {
-		pokemon := <-ch
+		pokemon := <-channel
 		pokemons = append(pokemons, pokemon)
 	}
 
@@ -46,8 +48,7 @@ func (f Fetcher) Fetch(from, to int) error {
 	return f.storage.Write(pokemons)
 }
 
-func GetResponses(from, to int, f Fetcher) <-chan models.Pokemon {
-	ch := make(chan models.Pokemon)
+func GetResponses(from, to int, f Fetcher, ch chan models.Pokemon) <-chan models.Pokemon {
 	for id := from; id <= to; id++ {
 		go PingAPI(id, f, ch)
 	}
