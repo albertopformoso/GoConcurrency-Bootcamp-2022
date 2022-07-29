@@ -31,16 +31,24 @@ func (x PokemonsByID) Len() int           { return len(x) }
 func (x PokemonsByID) Less(i, j int) bool { return x[i].ID < x[j].ID }
 func (x PokemonsByID) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
 
+type Result struct {
+	Error error
+	Pokemon models.Pokemon
+}
+
 func (f Fetcher) Fetch(from, to int) error {
 	var pokemons []models.Pokemon
-	ch := make(chan models.Pokemon)
-	defer close(ch)
+	done := make(chan interface{})
+	defer close(done)
 
-	channel := GetResponses(from, to, f, ch)
+	channel := GetResponses(from, to, f, done)
 
 	for id := from; id <= to; id++ {
-		pokemon := <-channel
-		pokemons = append(pokemons, pokemon)
+		result := <-channel
+		if result.Error != nil {
+			log.Printf("error: %v", result.Error)
+		}
+		pokemons = append(pokemons, result.Pokemon)
 	}
 
 	sort.Sort(PokemonsByID(pokemons))
@@ -48,19 +56,18 @@ func (f Fetcher) Fetch(from, to int) error {
 	return f.storage.Write(pokemons)
 }
 
-func GetResponses(from, to int, f Fetcher, ch chan models.Pokemon) <-chan models.Pokemon {
+func GetResponses(from, to int, f Fetcher, done chan interface{}) <-chan Result {
+	results := make(chan Result)
 	for id := from; id <= to; id++ {
-		go PingAPI(id, f, ch)
+		go PingAPI(id, f, done, results)
 	}
 
-	return ch
+	return results
 }
 
-func PingAPI(id int, f Fetcher, ch chan models.Pokemon) {
+func PingAPI(id int, f Fetcher, done chan interface{}, results chan Result) {
+	var result Result
 	pokemon, err := f.api.FetchPokemon(id)
-	if err != nil {
-		log.Printf("ERROR: fetch pokemon failed")
-	}
 
 	var flatAbilities []string
 	for _, t := range pokemon.Abilities {
@@ -68,5 +75,11 @@ func PingAPI(id int, f Fetcher, ch chan models.Pokemon) {
 	}
 	pokemon.FlatAbilityURLs = strings.Join(flatAbilities, "|")
 
-	ch <- pokemon
+	result = Result{Error: err, Pokemon: pokemon}
+
+	select {
+	case <-done:
+		return
+	case results <- result:
+	}
 }
